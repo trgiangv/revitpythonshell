@@ -1,75 +1,59 @@
-using JetBrains.Annotations;
+using System.Diagnostics.CodeAnalysis;
 using Nuke.Common;
 using Nuke.Common.Git;
+using Nuke.Common.Tooling;
+using Nuke.Common.Utilities;
 using Serilog;
-using System.Diagnostics;
-using System.Text;
-using System.Text.RegularExpressions;
 
-internal partial class Build
+sealed partial class Build
 {
-    private readonly Regex StreamRegex = new("'(.+?)'", RegexOptions.Compiled);
+    Target CreateInstaller => _ => _
+        .DependsOn(Compile)
+        .OnlyWhenStatic(() => IsLocalBuild || GitRepository.IsOnMainOrMasterBranch())
+        .Executes(() =>
+        {
+            foreach (var (installer, project) in InstallersMap)
+            {
+                Log.Information("Project: {Name}", project.Name);
 
-    private Target CreateInstaller => _ => _
-         .TriggeredBy(Compile)
-         .OnlyWhenStatic(() => IsLocalBuild || GitRepository.IsOnMainOrMasterBranch())
-         .Executes(() =>
-         {
-             var installerProject = BuilderExtensions.GetProject(Solution, InstallerProject);
-             var buildDirectories = GetBuildDirectories();
-             var configurations = GetConfigurations(InstallerConfiguration);
-             foreach (var directoryGroup in buildDirectories)
-             {
-                 var directories = directoryGroup.ToList();
-                 var exeArguments = BuildExeArguments(directories.Select(info => info.FullName).ToList());
-                 var exeFile = installerProject.GetExecutableFile(configurations, directories);
-                 if (string.IsNullOrEmpty(exeFile))
-                 {
-                     Log.Warning("No installer executable was found for these packages:\n {Directories}", string.Join("\n", directories));
-                     continue;
-                 }
+                var exePattern = $"*{installer.Name}.exe";
+                var exeFile = Directory.EnumerateFiles(installer.Directory, exePattern, SearchOption.AllDirectories)
+                    .FirstOrDefault()
+                    .NotNull($"No installer file was found for the project: {installer.Name}");
 
-                 var proc = new Process();
-                 proc.StartInfo.FileName = exeFile;
-                 proc.StartInfo.Arguments = exeArguments;
-                 proc.StartInfo.RedirectStandardOutput = true;
-                 proc.Start();
-                 while (!proc.StandardOutput.EndOfStream) ParseProcessOutput(proc.StandardOutput.ReadLine());
-                 proc.WaitForExit();
-                 if (proc.ExitCode != 0) throw new Exception("The installer creation failed.");
-             }
-         });
+                var directories =
+                    Directory.GetDirectories(project.Directory, "* Release *", SearchOption.AllDirectories);
+                Assert.NotEmpty(directories, "No files were found to create an installer");
 
-    private void ParseProcessOutput([CanBeNull] string value)
+                var arguments = directories.Select(path => path.DoubleQuoteIfNeeded()).JoinSpace();
+                var process =
+                    ProcessTasks.StartProcess(exeFile, arguments, logInvocation: false, logger: InstallLogger);
+                process.AssertZeroExitCode();
+            }
+        });
+
+    [SuppressMessage("ReSharper", "TemplateIsNotCompileTimeConstantProblem")]
+    void InstallLogger(OutputType outputType, string output)
     {
-        if (value is null) return;
-        var matches = StreamRegex.Matches(value);
-        if (matches.Count > 0)
+        if (outputType == OutputType.Err)
         {
-            var parameters = matches.Select(match => match.Value
-                    .Substring(1, match.Value.Length - 2))
-                .Cast<object>()
-                .ToArray();
-            var line = StreamRegex.Replace(value, match => $"{{Parameter{match.Index}}}");
-            Log.Information(line, parameters);
-        }
-        else
-        {
-            Log.Debug(value);
-        }
-    }
-
-    private static string BuildExeArguments(IReadOnlyList<string> args)
-    {
-        var argumentBuilder = new StringBuilder();
-        for (var i = 0; i < args.Count; i++)
-        {
-            if (i > 0) argumentBuilder.Append(' ');
-            var value = args[i];
-            if (value.Contains(' ')) value = $"\"{value}\"";
-            argumentBuilder.Append(value);
+            Log.Error(output);
+            return;
         }
 
-        return argumentBuilder.ToString();
+        var arguments = ArgumentsRegex.Matches(output);
+        if (arguments.Count == 0)
+        {
+            Log.Debug(output);
+            return;
+        }
+
+        var properties = arguments
+            .Select(match => match.Value.Substring(1, match.Value.Length - 2))
+            .Cast<object>()
+            .ToArray();
+
+        var messageTemplate = ArgumentsRegex.Replace(output, match => $"{{Property{match.Index}}}");
+        Log.Information(messageTemplate, properties);
     }
 }

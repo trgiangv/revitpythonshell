@@ -5,14 +5,14 @@
         <NoWarn>CS0649;CS0169</NoWarn>
         <LangVersion>latest</LangVersion>
         <ImplicitUsings>true</ImplicitUsings>
-        <TargetFramework>net6.0</TargetFramework>
+        <TargetFramework>net8.0-windows</TargetFramework>
         <NukeRootDirectory>..</NukeRootDirectory>
         <NukeScriptDirectory>..</NukeScriptDirectory>
         <NukeTelemetryVersion>1</NukeTelemetryVersion>
-        <Configurations>Release;Debug</Configurations>
+        <Configurations>Release;Debug;Debug R20;Debug R21;Debug R25;Release R25</Configurations>
     </PropertyGroup>
     <ItemGroup>
-        <PackageReference Include="Nuke.Common" Version="6.0.1"/>
+        <PackageReference Include="Nuke.Common" Version="8.0.0"/>
         <PackageReference Include="vswhere" Version="2.*"/>
     </ItemGroup>
     <ItemGroup>

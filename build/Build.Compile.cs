@@ -1,24 +1,31 @@
-﻿using Nuke.Common;
-using Nuke.Common.Tooling;
-using Nuke.Common.Tools.MSBuild;
-using static Nuke.Common.Tools.MSBuild.MSBuildTasks;
+﻿using System.IO.Enumeration;
+using Nuke.Common;
+using Nuke.Common.Tools.DotNet;
+using static Nuke.Common.Tools.DotNet.DotNetTasks;
 
-internal partial class Build
+sealed partial class Build
 {
-    private Target Compile => _ => _
-         .TriggeredBy(Cleaning)
-         .Executes(() =>
-         {
-             var configurations = GetConfigurations(BuildConfiguration, InstallerConfiguration);
-             configurations.ForEach(configuration =>
-             {
-                 MSBuild(s => s
-                     .SetTargets("Rebuild")
-                     .SetProcessToolPath(MsBuildPath.Value)
-                     .SetConfiguration(configuration)
-                     .SetVerbosity(MSBuildVerbosity.Minimal)
-                     .DisableNodeReuse()
-                     .EnableRestore());
-             });
-         });
+    Target Compile => _ => _
+        .DependsOn(Clean)
+        .Executes(() =>
+        {
+            foreach (var configuration in GlobBuildConfigurations())
+                DotNetBuild(settings => settings
+                    .SetConfiguration(configuration)
+                    .SetVersion(Version)
+                    .SetVerbosity(DotNetVerbosity.minimal));
+        });
+
+    List<string> GlobBuildConfigurations()
+    {
+        var configurations = Solution.Configurations
+            .Select(pair => pair.Key)
+            .Select(config => config.Remove(config.LastIndexOf('|')))
+            .Where(config => Configurations.Any(wildcard => FileSystemName.MatchesSimpleExpression(wildcard, config)))
+            .ToList();
+
+        Assert.NotEmpty(configurations,
+            $"No solution configurations have been found. Pattern: {string.Join(" | ", Configurations)}");
+        return configurations;
+    }
 }

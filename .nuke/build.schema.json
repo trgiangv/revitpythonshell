@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-04/schema#",
-  "title": "Build Schema",
   "$ref": "#/definitions/build",
+  "title": "Build Schema",
   "definitions": {
     "build": {
       "type": "object",
@@ -11,7 +11,8 @@
           "description": "Indicates to continue a previously failed build attempt"
         },
         "GitHubToken": {
-          "type": "string"
+          "type": "string",
+          "default": "Secrets must be entered via 'nuke :secrets [profile]'"
         },
         "Help": {
           "type": "boolean",
@@ -24,6 +25,7 @@
             "AppVeyor",
             "AzurePipelines",
             "Bamboo",
+            "Bitbucket",
             "Bitrise",
             "GitHubActions",
             "GitLab",
@@ -66,10 +68,10 @@
           "items": {
             "type": "string",
             "enum": [
-              "Cleaning",
+              "Clean",
               "Compile",
               "CreateInstaller",
-              "PublishGitHubRelease"
+              "PublishGitHub"
             ]
           }
         },
@@ -83,10 +85,10 @@
           "items": {
             "type": "string",
             "enum": [
-              "Cleaning",
+              "Clean",
               "Compile",
               "CreateInstaller",
-              "PublishGitHubRelease"
+              "PublishGitHub"
             ]
           }
         },

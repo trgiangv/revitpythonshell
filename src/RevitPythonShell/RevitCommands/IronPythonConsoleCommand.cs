@@ -24,7 +24,7 @@ namespace RevitPythonShell.RevitCommands
         {            
             var messageCopy = message;
             var gui = new IronPythonConsole();
-            gui.consoleControl.WithConsoleHost((host) =>
+            gui.ConsoleControl.WithConsoleHost((host) =>
             {
                 // now that the console is created and initialized, the script scope should
                 // be accessible...
@@ -43,31 +43,29 @@ namespace RevitPythonShell.RevitCommands
             });
 
             var dispatcher = Dispatcher.FromThread(Thread.CurrentThread);
-            gui.consoleControl.WithConsoleHost((host) =>
+            gui.ConsoleControl.WithConsoleHost((host) =>
             {                
                 host.Console.SetCommandDispatcher((command) =>
                 {
-                    if (command != null)
+                    if (command == null) return;
+                    // Slightly involved form to enable keyboard interrupt to work.
+                    var executing = true;
+                    var operation = dispatcher?.BeginInvoke(DispatcherPriority.Normal, command);
+                    while (executing)
                     {
-                        // Slightly involved form to enable keyboard interrupt to work.
-                        var executing = true;
-                        var operation = dispatcher.BeginInvoke(DispatcherPriority.Normal, command);
-                        while (executing)
-                        {
-                            if (operation.Status != DispatcherOperationStatus.Completed)
-                                operation.Wait(TimeSpan.FromSeconds(1));
-                            if (operation.Status == DispatcherOperationStatus.Completed)
-                                executing = false;
-                        }
-                    }                 
+                        if (operation!.Status != DispatcherOperationStatus.Completed)
+                            operation.Wait(TimeSpan.FromSeconds(1));
+                        if (operation.Status == DispatcherOperationStatus.Completed)
+                            executing = false;
+                    }
                 });
                 host.Editor.SetCompletionDispatcher((command) =>
                 {
                     var executing = true;
-                    var operation = dispatcher.BeginInvoke(DispatcherPriority.Normal, command);
+                    var operation = dispatcher?.BeginInvoke(DispatcherPriority.Normal, command);
                     while (executing)
                     {
-                        if (operation.Status != DispatcherOperationStatus.Completed)
+                        if (operation!.Status != DispatcherOperationStatus.Completed)
                             operation.Wait(TimeSpan.FromSeconds(1));
                         if (operation.Status == DispatcherOperationStatus.Completed)
                             executing = false;
@@ -82,9 +80,6 @@ namespace RevitPythonShell.RevitCommands
     }
 
     public class IronPythonConsoleCommandAvail : IExternalCommandAvailability {
-        public IronPythonConsoleCommandAvail() {
-        }
-
         public bool IsCommandAvailable(UIApplication uiApp, CategorySet selectedCategories) {
             return true;
         }

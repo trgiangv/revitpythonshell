@@ -50,11 +50,12 @@ namespace RpsRuntime
         /// </summary>
         /// <param name="application"></param>
         /// <param name="addinXml"></param>
+        /// <param name="addinAssembly"></param>
         private void BuildRibbonPanels(UIControlledApplication application, XDocument addinXml, Assembly addinAssembly)
         {
-            foreach (var xmlRibbonPanel in addinXml.Root.Descendants("RibbonPanel"))
+            foreach (var xmlRibbonPanel in addinXml.Root?.Descendants("RibbonPanel")!)
             {
-                var ribbonPanel = application.CreateRibbonPanel(xmlRibbonPanel.Attribute("text").Value);
+                var ribbonPanel = application.CreateRibbonPanel(xmlRibbonPanel.Attribute("text")?.Value);
                 foreach (var element in xmlRibbonPanel.Elements())
                 {
                     if (element.Name == "PushButton")
@@ -66,12 +67,12 @@ namespace RpsRuntime
                     {
                         var splitButton = ribbonPanel.AddItem(
                             new SplitButtonData(
-                                element.Attribute("text").Value, 
-                                element.Attribute("text").Value)) as SplitButton;
+                                element.Attribute("text")?.Value, 
+                                element.Attribute("text")?.Value)) as SplitButton;
                         foreach (var xmlPushButton in element.Descendants("PushButton"))
                         {
                             var pushButtonData = BuildPushButtonData(addinAssembly, xmlPushButton);
-                            splitButton.AddPushButton(pushButtonData);
+                            splitButton?.AddPushButton(pushButtonData);
                         }
                     }
                 }                
@@ -84,17 +85,17 @@ namespace RpsRuntime
         /// </summary>
         private PushButtonData BuildPushButtonData(Assembly addinAssembly, XElement xmlPushButton)
         {
-            var script = xmlPushButton.Attribute("src").Value;       // e.g. "helloworld.py"
+            var script = xmlPushButton.Attribute("src")?.Value;       // e.g. "helloworld.py"
             var scriptName = Path.GetFileNameWithoutExtension(script);  // e.g. "helloworld"
             var pbName = "pb_" + scriptName;                            // e.g. "pb_helloworld  ("pb" stands for "PushButton")
             var className = "ec_" + scriptName;                         // e.g. "ec_helloworld" ("ec" stands for "ExternalCommand")
-            var text = xmlPushButton.Attribute("text").Value;           // the user visible text on the button
+            var text = xmlPushButton.Attribute("text")?.Value;           // the user visible text on the button
 
             var result = new PushButtonData(pbName, text, addinAssembly.Location, className);
 
             if (IsValidPath(xmlPushButton.Attribute("largeImage")))
             {
-                var largeImagePath = GetAbsolutePath(xmlPushButton.Attribute("largeImage").Value);
+                var largeImagePath = GetAbsolutePath(xmlPushButton.Attribute("largeImage")?.Value);
                 result.LargeImage = BitmapDecoder.Create(File.OpenRead(largeImagePath), BitmapCreateOptions.None, BitmapCacheOption.None).Frames[0];
             }
             else
@@ -104,7 +105,7 @@ namespace RpsRuntime
 
             if (IsValidPath(xmlPushButton.Attribute("smallImage")))
             {
-                var smallImagePath = GetAbsolutePath(xmlPushButton.Attribute("smallImage").Value);
+                var smallImagePath = GetAbsolutePath(xmlPushButton.Attribute("smallImage")?.Value);
                 result.Image = BitmapDecoder.Create(File.OpenRead(smallImagePath), BitmapCreateOptions.None, BitmapCacheOption.None).Frames[0];
             }
             else
@@ -142,7 +143,7 @@ namespace RpsRuntime
             else
             {
                 var assembly = this.GetType().Assembly;
-                return Path.Combine(Path.GetDirectoryName(assembly.Location), path);
+                return Path.Combine(Path.GetDirectoryName(assembly.Location) ?? string.Empty, path);
             }
         }
 
@@ -157,7 +158,7 @@ namespace RpsRuntime
         {
             var assembly = typeof(RpsExternalApplicationBase).Assembly;
             var file = assembly.GetManifestResourceStream(imageName);
-            var source = PngBitmapDecoder.Create(file, BitmapCreateOptions.None, BitmapCacheOption.None);
+            var source = BitmapDecoder.Create(file!, BitmapCreateOptions.None, BitmapCacheOption.None);
             return source.Frames[0];
         }
 
@@ -165,25 +166,25 @@ namespace RpsRuntime
         /// Execute the startup script (specified under /RpsAddin/StartupScript/@src)
         /// </summary>
         /// <param name="uiControlledApplication"></param>
+        /// <param name="addinXml"></param>
+        /// <param name="addinAssembly"></param>
         private void ExecuteStartupScript(UIControlledApplication uiControlledApplication, XDocument addinXml, Assembly addinAssembly)
         {
             // we need a UIApplication object to assign as `__revit__` in python...
             var versionNumber = uiControlledApplication.ControlledApplication.VersionNumber;
             var fieldName = int.Parse(versionNumber) >= 2017 ? "m_uiapplication" : "m_application";
             var fi = uiControlledApplication.GetType().GetField(fieldName, BindingFlags.NonPublic | BindingFlags.Instance);
-            var uiApplication = (UIApplication)fi.GetValue(uiControlledApplication);
+            var uiApplication = (UIApplication)fi?.GetValue(uiControlledApplication);
             // execute StartupScript
             var scriptName = GetStartupScriptName(addinXml);
             var startupScript = GetEmbeddedScript(scriptName, addinAssembly);
-            if (startupScript != null)
+            if (startupScript == null) return;
+            var executor = new ScriptExecutor(GetConfig(), uiApplication, uiControlledApplication);                
+            var result = executor.ExecuteScript(startupScript, Path.Combine(addinAssembly.Location, scriptName));
+            if (result == (int)Result.Failed)
             {
-                var executor = new ScriptExecutor(GetConfig(), uiApplication, uiControlledApplication);                
-                var result = executor.ExecuteScript(startupScript, Path.Combine(addinAssembly.Location, scriptName));
-                if (result == (int)Result.Failed)
-                {
-                    // FIXME: make the TaskDialog show the addins name.
-                    TaskDialog.Show("RevitPythonShell - StartupScript", executor.Message);
-                }
+                // FIXME: make the TaskDialog show the addins name.
+                TaskDialog.Show("RevitPythonShell - StartupScript", executor.Message);
             }
         }
 
@@ -198,19 +199,20 @@ namespace RpsRuntime
             {
                 return null;
             }
-            var source = new StreamReader(addinAssembly.GetManifestResourceStream(scriptName)).ReadToEnd();
+            var source = new StreamReader(addinAssembly.GetManifestResourceStream(scriptName)!).ReadToEnd();
             return source;
         }
 
         private string GetStartupScriptName(XDocument addinXml)
         {
-            var startupScriptTags = addinXml.Root.Descendants("StartupScript") ?? new List<XElement>();
-            if (startupScriptTags.Count() == 0)
+            var startupScriptTags = addinXml.Root?.Descendants("StartupScript") ?? new List<XElement>();
+            var scriptTags = startupScriptTags as XElement[] ?? startupScriptTags.ToArray();
+            if (!scriptTags.Any())
             {
                 return null;
             }
-            var tag = startupScriptTags.First();
-            var scriptName = tag.Attribute("src").Value;
+            var tag = scriptTags.First();
+            var scriptName = tag.Attribute("src")?.Value;
             return scriptName;
         }
 

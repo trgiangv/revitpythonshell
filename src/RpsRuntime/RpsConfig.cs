@@ -8,18 +8,14 @@ namespace RpsRuntime
     /// </summary>
     public class RpsConfig: IRpsConfig
     {
-        /// <summary>
-        /// The full path to the settings file used (e.g. %APPDATA%\RevitPythonShell2013\RevitPythonShell.xml)
-        /// </summary>
-        private readonly string _settingsPath;
         private readonly XDocument _settings;
         private readonly SettingsDictionary _dict;
 
         public RpsConfig(string settingsFilePath)
         {
-            _settingsPath = settingsFilePath;
-            _settings = XDocument.Load(_settingsPath);
-            _dict = new SettingsDictionary(_settingsPath);
+            var settingsPath = settingsFilePath;
+            _settings = XDocument.Load(settingsPath);
+            _dict = new SettingsDictionary(settingsPath);
         }
 
         /// <summary>
@@ -27,10 +23,7 @@ namespace RpsRuntime
         /// </summary>
         public IEnumerable<string> GetSearchPaths()
         {
-            foreach (var searchPathNode in _settings.Root.Descendants("SearchPath"))
-            {
-                yield return searchPathNode.Attribute("name").Value;
-            }
+            return _settings.Root?.Descendants("SearchPath").Select(searchPathNode => searchPathNode.Attribute("name")?.Value);
         }
 
         /// <summary>

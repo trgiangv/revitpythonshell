@@ -6,38 +6,19 @@ using System.Text.RegularExpressions;
 
 namespace PythonConsoleControl
 {
-    public class PythonOutputStream : Stream
+    public class PythonOutputStream(PythonTextEditor textEditor) : Stream
     {
-        private PythonTextEditor textEditor;
+        public override bool CanRead => false;
 
-        public PythonOutputStream(PythonTextEditor textEditor)
-        {
-            this.textEditor = textEditor;
-        }
+        public override bool CanSeek => false;
 
-        public override bool CanRead
-        {
-            get { return false; }
-        }
+        public override bool CanWrite => true;
 
-        public override bool CanSeek
-        {
-            get { return false; }
-        }
-
-        public override bool CanWrite
-        {
-            get { return true; }
-        }
-
-        public override long Length
-        {
-            get { return 0; }
-        }
+        public override long Length => 0;
 
         public override long Position
         {
-            get { return 0; }
+            get => 0;
             set { }
         }
 

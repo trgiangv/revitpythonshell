@@ -15,7 +15,7 @@ namespace RpsRuntime
         /// <summary>
         /// Build a new assembly and save it to disk as "pathToDll". Create a type (implementing IExternalCommand) for
         /// each class name in classNamesToScriptPaths that, when "Execute()" is called on it, will load the corresponding python script
-        /// from disk and execute it.
+        /// from the disk and execute it.
         /// </summary>
         public void BuildExternalCommandAssembly(string pathToDll, IDictionary<string, string> classNamesToScriptPaths)
         {
@@ -27,33 +27,36 @@ namespace RpsRuntime
 
             foreach (var className in classNamesToScriptPaths.Keys)
             {
-                var typebuilder = moduleBuilder.DefineType(className,
+                var typeBuilder = moduleBuilder.DefineType(className,
                                                         TypeAttributes.Class | TypeAttributes.Public,
                                                         typeof(RpsExternalCommandScriptBase));
 
                 // add RegenerationAttribute to type
-                var regenerationConstrutorInfo = typeof(RegenerationAttribute).GetConstructor(new Type[] { typeof(RegenerationOption) });
-                var regenerationAttributeBuilder = new CustomAttributeBuilder(regenerationConstrutorInfo, new object[] { RegenerationOption.Manual });
-                typebuilder.SetCustomAttribute(regenerationAttributeBuilder);
+                var regenerationConstructorInfo = typeof(RegenerationAttribute).GetConstructor([typeof(RegenerationOption)
+                ]);
+                var regenerationAttributeBuilder = new CustomAttributeBuilder(regenerationConstructorInfo!,
+                    [RegenerationOption.Manual]);
+                typeBuilder.SetCustomAttribute(regenerationAttributeBuilder);
 
                 // add TransactionAttribute to type
-                var transactionConstructorInfo = typeof(TransactionAttribute).GetConstructor(new Type[] { typeof(TransactionMode) });
-                var transactionAttributeBuilder = new CustomAttributeBuilder(transactionConstructorInfo, new object[] { TransactionMode.Manual });
-                typebuilder.SetCustomAttribute(transactionAttributeBuilder);
+                var transactionConstructorInfo = typeof(TransactionAttribute).GetConstructor([typeof(TransactionMode)]);
+                var transactionAttributeBuilder = new CustomAttributeBuilder(transactionConstructorInfo!,
+                    [TransactionMode.Manual]);
+                typeBuilder.SetCustomAttribute(transactionAttributeBuilder);
 
-                // call base constructor with script path
-                var ci = typeof(RpsExternalCommandScriptBase).GetConstructor(new[] { typeof(string) });
+                // call base constructor with a script path
+                var ci = typeof(RpsExternalCommandScriptBase).GetConstructor([typeof(string)]);
 
-                var constructorBuilder = typebuilder.DefineConstructor(MethodAttributes.Public, CallingConventions.Standard, new Type[0]);
+                var constructorBuilder = typeBuilder.DefineConstructor(MethodAttributes.Public, CallingConventions.Standard, new Type[0]);
                 var gen = constructorBuilder.GetILGenerator();
                 gen.Emit(OpCodes.Ldarg_0);                // Load "this" onto eval stack
                 gen.Emit(OpCodes.Ldstr, classNamesToScriptPaths[className]);  // Load the path to the command as a string onto stack
-                gen.Emit(OpCodes.Call, ci);               // call base constructor (consumes "this" and the string)
+                gen.Emit(OpCodes.Call, ci!);               // call base constructor (consumes "this" and the string)
                 gen.Emit(OpCodes.Nop);                    // Fill some space - this is how it is generated for equivalent C# code
                 gen.Emit(OpCodes.Nop);
                 gen.Emit(OpCodes.Nop);
                 gen.Emit(OpCodes.Ret);                    // return from constructor
-                typebuilder.CreateType();
+                typeBuilder.CreateType();
             }
             assemblyBuilder.Save(dllName + ".dll");
         }

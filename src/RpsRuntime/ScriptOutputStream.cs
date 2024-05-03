@@ -15,7 +15,6 @@ namespace RpsRuntime
     public class ScriptOutputStream: Stream
     {
         private readonly ScriptOutput _gui;
-        private readonly ScriptEngine _engine;
         private int _bomCharsLeft; // we want to get rid of pesky UTF8-BOM-Chars on write
         private readonly Queue<MemoryStream> _completedLines; // one memorystream per line of input
         private MemoryStream _inputBuffer;
@@ -23,7 +22,6 @@ namespace RpsRuntime
         public ScriptOutputStream(ScriptOutput gui, ScriptEngine engine)
         {
             _gui = gui;
-            _engine = engine;
             _gui.txtStdOut.KeyPress += KeyPressEventHandler;
             _gui.txtStdOut.KeyDown += KeyDownEventHandler;
             //_gui.Closing += ClosingEventHandler;
@@ -37,22 +35,6 @@ namespace RpsRuntime
             _bomCharsLeft = 3; //0xef, 0xbb, 0xbf for UTF-8 (see http://en.wikipedia.org/wiki/Byte_order_mark#Representations_of_byte_order_marks_by_encoding)
         }
 
-        private void ClosedEventHandler(object sender, EventArgs e)
-        {
-            _engine.Runtime.Shutdown();
-            _completedLines.Enqueue(new MemoryStream());
-        }
-
-        /// <summary>
-        /// Terminate reading from STDIN.
-        /// FIXME: this doesn't work!
-        /// </summary>
-        private void ClosingEventHandler(object sender, System.ComponentModel.CancelEventArgs e)
-        {        
-            _engine.Runtime.Shutdown();            
-            _completedLines.Enqueue(new MemoryStream());
-        }
-
         /// <summary>
         /// Complete a line when the enter key is pressed. Also
         /// try to emulate a nice control window. This is going to be a big gigantic pile
@@ -60,7 +42,7 @@ namespace RpsRuntime
         /// </summary>
         private void KeyDownEventHandler(object sender, KeyEventArgs e)
         {
-            if (e.KeyCode == Keys.Enter || e.KeyCode == Keys.Return)
+            if (e.KeyCode is Keys.Enter or Keys.Return)
             {
                 var line = _inputBuffer;
                 var newLine = new byte[] {/*0x0d,*/ 0x0a};
@@ -69,25 +51,29 @@ namespace RpsRuntime
                 _completedLines.Enqueue(line);
                 _inputBuffer = new MemoryStream();
             }            
-            else if (e.KeyCode == Keys.Back || e.KeyCode == Keys.Left)
+            else switch (e.KeyCode)
             {
-                // remove last character from input buffer
-                if (_inputBuffer.Position > 0)
+                case Keys.Back:
+                case Keys.Left:
                 {
-                    var line = new MemoryStream();
-                    line.Write(_inputBuffer.GetBuffer(), 0, (int)(_inputBuffer.Position - 1));
-                    _inputBuffer = line;
-                    _gui.txtStdOut.Text = _gui.txtStdOut.Text.Substring(0, _gui.txtStdOut.Text.Length - 1);
-                    _gui.txtStdOut.SelectionStart = _gui.txtStdOut.Text.Length;
-                    _gui.txtStdOut.ScrollToCaret();
-                }                
-                // do not pass backspace / left on to txtStdOut
-                e.Handled = true;                
-            }
-            else if (e.KeyCode == Keys.Right)
-            {                
-                // do not move right ever...
-                e.Handled = true;
+                    // remove last character from input buffer
+                    if (_inputBuffer.Position > 0)
+                    {
+                        var line = new MemoryStream();
+                        line.Write(_inputBuffer.GetBuffer(), 0, (int)(_inputBuffer.Position - 1));
+                        _inputBuffer = line;
+                        _gui.txtStdOut.Text = _gui.txtStdOut.Text.Substring(0, _gui.txtStdOut.Text.Length - 1);
+                        _gui.txtStdOut.SelectionStart = _gui.txtStdOut.Text.Length;
+                        _gui.txtStdOut.ScrollToCaret();
+                    }                
+                    // do not pass backspace / left on to txtStdOut
+                    e.Handled = true;
+                    break;
+                }
+                case Keys.Right:
+                    // do not move right ever...
+                    e.Handled = true;
+                    break;
             }
         }
 
@@ -140,8 +126,7 @@ namespace RpsRuntime
                 var actualBuffer = new byte[count];
                 Array.Copy(buffer, offset, actualBuffer, 0, count);
                 var text = Encoding.UTF8.GetString(actualBuffer);
-                Debug.WriteLine(text);
-                _gui.BeginInvoke((Action)delegate()
+                _gui.BeginInvoke((Action)delegate
                 {
                     _gui.txtStdOut.AppendText(text);
                     _gui.txtStdOut.SelectionStart = _gui.txtStdOut.Text.Length;
@@ -185,29 +170,17 @@ namespace RpsRuntime
         }
 
        
-        public override bool CanRead
-        {
-            get { return !_gui.IsDisposed; }
-        }
+        public override bool CanRead => !_gui.IsDisposed;
 
-        public override bool CanSeek
-        {
-            get { return false; }
-        }
+        public override bool CanSeek => false;
 
-        public override bool CanWrite
-        {
-            get { return true; }
-        }
+        public override bool CanWrite => true;
 
-        public override long Length
-        {
-            get { return _gui.txtStdOut.Text.Length; }
-        }
+        public override long Length => _gui.txtStdOut.Text.Length;
 
         public override long Position
         {
-            get { return 0; }
+            get => 0;
             set { }
         }
     }

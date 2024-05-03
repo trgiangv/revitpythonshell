@@ -170,23 +170,11 @@ namespace RpsRuntime
             AddEmbeddedLib(engine);
 
             // reference RevitAPI and RevitAPIUI
-            engine.Runtime.LoadAssembly(typeof(Autodesk.Revit.DB.Document).Assembly);
-            engine.Runtime.LoadAssembly(typeof(Autodesk.Revit.UI.TaskDialog).Assembly);
+            engine.Runtime.LoadAssembly(typeof(Document).Assembly);
+            engine.Runtime.LoadAssembly(typeof(TaskDialog).Assembly);
 
             // also, allow access to the RPS internals
             engine.Runtime.LoadAssembly(typeof(ScriptExecutor).Assembly);
-        }        
-
-        /// <summary>
-        /// Be nasty and reach into the ScriptScope to get at its private '_scope' member,
-        /// since the accessor 'ScriptScope.Scope' was defined 'internal'.
-        /// </summary>
-        private Microsoft.Scripting.Runtime.Scope GetScope(ScriptScope scriptScope)
-        {
-            var field = scriptScope.GetType().GetField(
-                "_scope",
-                System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-            return (Microsoft.Scripting.Runtime.Scope)field?.GetValue(scriptScope);
         }
 
         /// <summary>
@@ -207,13 +195,11 @@ namespace RpsRuntime
 
     public class ErrorReporter : ErrorListener
     {
-        public readonly List<String> Errors = new();
+        public readonly List<String> Errors = [];
 
         public override void ErrorReported(ScriptSource source, string message, SourceSpan span, int errorCode, Severity severity)
         {
             Errors.Add($"{message} (line {span.Start.Line})");
         }
-
-        public int Count => Errors.Count;
     }
 }

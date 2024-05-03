@@ -48,18 +48,18 @@
                         <RibbonButton Label="New" LargeImageSource="../Resources/Theme/New.png"
                                       ToolTip="New (Ctrl + N)"
                                       SnapsToDevicePixels="True"
-                                     Click="newFileClick" />
+                                     Click="NewFileClick" />
                         <RibbonButton Label="Open" LargeImageSource="../Resources/Theme/Open.png"
                                       ToolTip="Open (Ctrl + O)"
-                                      Click="openFileClick" />
+                                      Click="OpenFileClick" />
                         <RibbonButton Label="Save" LargeImageSource="../Resources/Theme/Save.png"
                                       ToolTip="Save (Ctrl + S)"
-                                      Click="saveFileClick"
+                                      Click="SaveFileClick"
                                       SnapsToDevicePixels="True" />
                         <RibbonButton Label="Save As" LargeImageSource="../Resources/Theme/SaveAs.png"
                                       ToolTip="Save As (Ctrl + Shift + S)"
                                       SnapsToDevicePixels="True"
-                                      Click="saveAsFileClick" />
+                                      Click="SaveAsFileClick" />
                     </RibbonGroup>
                     <RibbonGroup Header="Modify">
                         <RibbonButton Label="Cut" SmallImageSource="../Resources/Theme/Cut.png"
@@ -94,42 +94,32 @@
                         <RibbonCheckBox Label="WordWrap" SmallImageSource="../Resources/Theme/WordWrap.png"
                                         ToolTip="Toggle Word Wrap"
                                         SnapsToDevicePixels="True"
-                                        IsChecked="{Binding ElementName=textEditor, Path=WordWrap}" />
+                                        IsChecked="{Binding ElementName=TextEditor, Path=WordWrap}" />
                         <RibbonCheckBox Label="Paragraph" SmallImageSource="../Resources/Theme/Paragraph.png"
                                         ToolTip="Toggle Show End of Line"
                                         SnapsToDevicePixels="True"
-                                        IsChecked="{Binding ElementName=textEditor, Path=Options.ShowEndOfLine}"
+                                        IsChecked="{Binding ElementName=TextEditor, Path=Options.ShowEndOfLine}"
                                         />
                         <RibbonCheckBox Label="Number" SmallImageSource="../Resources/Theme/Number.png"
-                                        IsChecked="{Binding ElementName=textEditor, Path=ShowLineNumbers}"
+                                        IsChecked="{Binding ElementName=TextEditor, Path=ShowLineNumbers}"
                                         ToolTip="Toggle Line Numbers"
                                         SnapsToDevicePixels="True"/>
                     </RibbonGroup>
                     <RibbonGroup Header="Execute">
                         <RibbonButton Label="Run" LargeImageSource="../Resources/Theme/Run.png"
                                       SnapsToDevicePixels="True"
-                                      Click="runClick"
+                                      Click="RunClick"
                                       ToolTip="(F5) Run Script. Results will be displayed in the IronPython prompt." />
                     </RibbonGroup>
                 </RibbonTab>
             </Ribbon>
-            <!-- <ToolBar DockPanel.Dock="Top"> -->
-            <!--     <Separator /> -->
-            <!--     <CheckBox IsChecked="{Binding ElementName=textEditor, Path=ShowLineNumbers}"> -->
-            <!--         <Image -->
-            <!--             Height="16" -->
-            <!--             SnapsToDevicePixels="True" -->
-            <!--             Source="/RevitPythonShell;component/Resources/Theme/Number.png" -->
-            <!--             ToolTip="Toggle Line Numbers" /> -->
-            <!--     </CheckBox> -->
-            <!-- </ToolBar> -->
         </DockPanel>
         <Grid Grid.Column="0" Grid.Row="1">
             <avalonEdit:TextEditor
                 FontFamily="Consolas"
                 FontSize="10pt"
                 GotFocus="textEditor_GotFocus"
-                Name="textEditor">
+                Name="TextEditor">
                 # IronPython Pad. Write code snippets here and F5 to run.
             </avalonEdit:TextEditor>
         </Grid>
@@ -140,8 +130,8 @@
             HorizontalAlignment="Stretch"
             VerticalAlignment="Center" />
 
-        <Grid Grid.Row="3" MinHeight="20">
-            <console:IronPythonConsoleControl Name="consoleControl" />
+        <Grid Grid.Row="3" Grid.Column="0" MinHeight="20">
+            <console:IronPythonConsoleControl Name="ConsoleControl" />
         </Grid>
 
     </Grid>

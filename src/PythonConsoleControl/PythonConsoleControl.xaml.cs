@@ -40,7 +40,7 @@ namespace PythonConsoleControl
                 }
             }
             // and register it in the HighlightingManager
-            HighlightingManager.Instance.RegisterHighlighting("Python Highlighting", new string[] { ".cool" }, pythonHighlighting);
+            HighlightingManager.Instance.RegisterHighlighting("Python Highlighting", [".cool"], pythonHighlighting);
             _pad.Control.SyntaxHighlighting = pythonHighlighting;
             IList<IVisualLineTransformer> transformers = _pad.Control.TextArea.TextView.LineTransformers;
             for (int i = 0; i < transformers.Count; ++i)

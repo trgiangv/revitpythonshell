@@ -13,16 +13,8 @@ namespace RpsRuntime
     /// </summary>
     [Regeneration(RegenerationOption.Manual)]
     [Transaction(TransactionMode.Manual)]
-    public class RpsExternalCommandScriptBase: IExternalCommand
+    public class RpsExternalCommandScriptBase(string scriptSource) : IExternalCommand
     {
-
-        protected string _scriptSource = "";
-
-        public RpsExternalCommandScriptBase(string scriptSource)
-        {
-            _scriptSource = scriptSource;
-        }
-
         /// <summary>
         /// Overload this method to implement an external command within Revit.
         /// </summary>
@@ -36,16 +28,16 @@ namespace RpsRuntime
         /// only if the command status was "Failed".</param>
         public Result Execute(ExternalCommandData commandData, ref string message, ElementSet elements)
         {
-            // FIXME: somehow fetch back message after script execution...
+            // FIXME: somehow fetch back a message after script execution...
             var executor = new ScriptExecutor(GetConfig(), commandData, message, elements);
 
             string source;
-            using (var reader = File.OpenText(_scriptSource))
+            using (var reader = File.OpenText(scriptSource))
             {
                 source = reader.ReadToEnd();
             }
 
-            var result = executor.ExecuteScript(source, _scriptSource);
+            var result = executor.ExecuteScript(source, scriptSource);
             message = executor.Message;
             switch (result)
             {

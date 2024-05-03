@@ -23,7 +23,7 @@ namespace RpsRuntime
             var scriptName = className.Substring(3) + ".py"; // e.g. "helloworld.py
             var assembly = this.GetType().Assembly;
 
-            var source = new StreamReader(assembly.GetManifestResourceStream(scriptName)).ReadToEnd();
+            var source = new StreamReader(assembly.GetManifestResourceStream(scriptName)!).ReadToEnd();
 
             var result = executor.ExecuteScript(source, Path.Combine(assembly.Location, scriptName));
             message = executor.Message;
@@ -42,7 +42,7 @@ namespace RpsRuntime
 
         /// <summary>
         /// Search for the config file first in the user preferences,
-        /// then in the all users preferences.
+        /// then in the all users' preferences.
         /// If not found, a new (empty) config file is created in the user preferences.
         /// </summary>
         private RpsConfig GetConfig()

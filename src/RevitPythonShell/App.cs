@@ -144,14 +144,14 @@ namespace RevitPythonShell
             return source.Frames[0];
         }
 
-        private static ImageSource GetEmbeddedPng(System.Reflection.Assembly app, string imageName)
+        private static ImageSource GetEmbeddedPng(Assembly app, string imageName)
         {
             var file = app.GetManifestResourceStream(imageName);
-            var source = BitmapDecoder.Create(file, BitmapCreateOptions.None, BitmapCacheOption.None);
+            var source = BitmapDecoder.Create(file!, BitmapCreateOptions.None, BitmapCacheOption.None);
             return source.Frames[0];
         }
 
-        private static void AddGroupedCommands(string dllfullpath, RibbonPanel ribbonPanel, IEnumerable<IGrouping<string, Command>> groupedCommands)
+        private static void AddGroupedCommands(string dllFullPath, RibbonPanel ribbonPanel, IEnumerable<IGrouping<string, Command>> groupedCommands)
         {
             foreach (var group in groupedCommands)
             {
@@ -159,7 +159,7 @@ namespace RevitPythonShell
                 var splitButton = ribbonPanel.AddItem(splitButtonData) as SplitButton;
                 foreach (var command in group)
                 {
-                    var pbd = new PushButtonData(command.Name, command.Name, dllfullpath, "Command" + command.Index)
+                    var pbd = new PushButtonData(command.Name, command.Name, dllFullPath, "Command" + command.Index)
                         {
                             Image = command.SmallImage,
                             LargeImage = command.LargeImage

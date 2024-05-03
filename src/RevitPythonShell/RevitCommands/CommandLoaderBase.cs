@@ -13,15 +13,8 @@ namespace RevitPythonShell.RevitCommands
     /// </summary>
     [Regeneration(RegenerationOption.Manual)]
     [Transaction(TransactionMode.Manual)]
-    public abstract class CommandLoaderBase : IExternalCommand
+    public abstract class CommandLoaderBase(string scriptSource) : IExternalCommand
     {
-        protected string _scriptSource = "";
-
-        public CommandLoaderBase(string scriptSource)
-        {
-            _scriptSource = scriptSource;
-        }
-
         /// <summary>
         /// Overload this method to implement an external command within Revit.
         /// </summary>
@@ -38,12 +31,12 @@ namespace RevitPythonShell.RevitCommands
             var executor = new ScriptExecutor(App.GetConfig(), commandData, message, elements);
 
             string source;
-            using (var reader = File.OpenText(_scriptSource))
+            using (var reader = File.OpenText(scriptSource))
             {
                 source = reader.ReadToEnd();
             }
 
-            var result = executor.ExecuteScript(source, _scriptSource);
+            var result = executor.ExecuteScript(source, scriptSource);
             message = executor.Message;
             return result switch
             {

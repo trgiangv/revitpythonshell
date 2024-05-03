@@ -1,6 +1,5 @@
 ﻿using System.IO;
 using System.Windows.Forms;
-using System.Windows.Forms.VisualStyles;
 using Form = System.Windows.Forms.Form;
 
 namespace RevitPythonShell.Views
@@ -191,9 +190,7 @@ namespace RevitPythonShell.Views
 
         private void SwapPositions<T>(List<T> container, int oldPosition, int newPosition)
         {
-            var temp = container[newPosition];
-            container[newPosition] = container[oldPosition];
-            container[oldPosition] = temp;
+            (container[newPosition], container[oldPosition]) = (container[oldPosition], container[newPosition]);
         }
 
         private void btnCommandMoveDown_Click(object sender, EventArgs e)

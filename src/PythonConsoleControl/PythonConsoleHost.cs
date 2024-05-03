@@ -15,54 +15,39 @@ namespace PythonConsoleControl
     /// <summary>
     /// Hosts the python console.
     /// </summary>
-    public class PythonConsoleHost : ConsoleHost, IDisposable
+    public sealed class PythonConsoleHost(PythonTextEditor textEditor) : ConsoleHost, IDisposable
     {
-        private Thread thread;
-        private PythonTextEditor textEditor;
-        private PythonConsole pythonConsole;       
+        private Thread _thread;
+        private PythonConsole _pythonConsole;       
 
         public event ConsoleCreatedEventHandler ConsoleCreated;
 
-        public PythonConsoleHost(PythonTextEditor textEditor)
-        {
-            this.textEditor = textEditor;
-        }
+        public PythonConsole Console => _pythonConsole;
 
-        public PythonConsole Console
-        {
-            get { return pythonConsole; }
-        }
+        public PythonTextEditor Editor => textEditor;
 
-        public PythonTextEditor Editor
-        {
-            get { return textEditor; }
-        }
-
-        protected override Type Provider
-        {
-            get { return typeof(PythonContext); }
-        }
+        protected override Type Provider => typeof(PythonContext);
 
         /// <summary>
         /// Runs the console host in its own thread.
         /// </summary>
         public void Run()
         {
-            thread = new Thread(RunConsole);
-            thread.IsBackground = true;
-            thread.Start();
+            _thread = new Thread(RunConsole);
+            _thread.IsBackground = true;
+            _thread.Start();
         }
 
         public void Dispose()
         {
-            if (pythonConsole != null)
+            if (_pythonConsole != null)
             {
-                pythonConsole.Dispose();
+                _pythonConsole.Dispose();
             }
 
-            if (thread != null)
+            if (_thread != null)
             {
-                thread.Join();
+                _thread.Join();
             }
         }
 
@@ -78,7 +63,7 @@ namespace PythonConsoleControl
         }
 
         /// <remarks>
-        /// After the engine is created the standard output is replaced with our custom Stream class so we
+        /// After the engine is created, the standard output is replaced with our custom Stream class so we
         /// can redirect the stdout to the text editor window.
         /// This can be done in this method since the Runtime object will have been created before this method
         /// is called.
@@ -86,16 +71,16 @@ namespace PythonConsoleControl
         protected override IConsole CreateConsole(ScriptEngine engine, CommandLine commandLine, ConsoleOptions options)
         {
             SetOutput(new PythonOutputStream(textEditor));
-            pythonConsole = new PythonConsole(textEditor, commandLine);
+            _pythonConsole = new PythonConsole(textEditor, commandLine);
             if (ConsoleCreated != null) ConsoleCreated(this, EventArgs.Empty);
-            return pythonConsole;
+            return _pythonConsole;
         }
 
         public void WhenConsoleCreated(Action<PythonConsoleHost> action)
         {            
-            if (pythonConsole != null)
+            if (_pythonConsole != null)
             {
-                pythonConsole.WhenConsoleInitialized(() => action(this));
+                _pythonConsole.WhenConsoleInitialized(() => action(this));
             }
             else
             {
@@ -103,7 +88,7 @@ namespace PythonConsoleControl
             }
         }
 
-        protected virtual void SetOutput(PythonOutputStream stream)
+        private void SetOutput(PythonOutputStream stream)
         {
             Runtime.IO.SetOutput(stream, Encoding.UTF8);
         }
@@ -113,7 +98,7 @@ namespace PythonConsoleControl
         /// </summary>
         private void RunConsole()
         {
-            this.Run(new string[] { "-X:FullFrames" });
+            Run(["-X:FullFrames"]);
         }
 
         protected override ScriptRuntimeSetup CreateRuntimeSetup()
@@ -141,7 +126,7 @@ namespace PythonConsoleControl
         protected override void ExecuteInternal()
         {
             var pc = HostingHelpers.GetLanguageContext(Engine) as PythonContext;
-            pc.SetModuleState(typeof(ScriptEngine), Engine);
+            pc?.SetModuleState(typeof(ScriptEngine), Engine);
             base.ExecuteInternal();
         }
     }

@@ -43,7 +43,7 @@ namespace RevitPythonShell.RevitCommands
                 // copy static stuff (paddings runtime, iron python dlls etc., addin installation utilities)
                 CopyFile(typeof(RpsExternalApplicationBase).Assembly.Location);          // RpsRuntime.dll
 
-                var ironPythonPath = Path.GetDirectoryName(this.GetType().Assembly.Location);
+                var ironPythonPath = Path.GetDirectoryName(GetType().Assembly.Location);
                 CopyFile(Path.Combine(ironPythonPath!, "IronPython.dll"));                    // IronPython.dll
                 CopyFile(Path.Combine(ironPythonPath, "IronPython.Modules.dll"));            // IronPython.Modules.dll            
                 CopyFile(Path.Combine(ironPythonPath, "Microsoft.Scripting.dll"));           // Microsoft.Scripting.dll
@@ -161,7 +161,7 @@ namespace RevitPythonShell.RevitCommands
             dialog.CheckPathExists = true;
             dialog.Multiselect = false;
             dialog.DefaultExt = "xml";
-            dialog.Filter = "RpsAddin xml files (*.xml)|*.xml";
+            dialog.Filter = @"RpsAddin xml files (*.xml)|*.xml";
 
             dialog.ShowDialog();
             return dialog.FileName;
@@ -274,7 +274,7 @@ namespace RevitPythonShell.RevitCommands
         private void AddTransactionAttributeToType(TypeBuilder typeBuilder)
         {
             var transactionConstructorInfo = typeof(TransactionAttribute).GetConstructor(new Type[] { typeof(TransactionMode) });
-            var transactionAttributeBuilder = new CustomAttributeBuilder(transactionConstructorInfo, new object[] { TransactionMode.Manual });
+            var transactionAttributeBuilder = new CustomAttributeBuilder(transactionConstructorInfo!, new object[] { TransactionMode.Manual });
             typeBuilder.SetCustomAttribute(transactionAttributeBuilder);
         }
 

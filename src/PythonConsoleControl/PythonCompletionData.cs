@@ -10,49 +10,29 @@ namespace PythonConsoleControl
     /// <summary>
     /// Implements AvalonEdit ICompletionData interface to provide the entries in the completion drop down.
     /// </summary>
-    public class PythonCompletionData : ICompletionData
+    public class PythonCompletionData(string text, string stub, CommandLine commandLine, bool isInstance)
+        : ICompletionData
     {
-        private CommandLine commandLine;
+        public System.Windows.Media.ImageSource Image => null;
 
-        public PythonCompletionData(string text, string stub, CommandLine commandLine, bool isInstance)
-        {
-            this.Text = text;
-            this.Stub = stub;
-            this.commandLine = commandLine;
-            this.IsInstance = isInstance;
-        }
+        public string Text { get; private set; } = text;
 
-        public System.Windows.Media.ImageSource Image
-        {
-            get { return null; }
-        }
+        public string Stub { get; private set; } = stub;
 
-        public string Text { get; private set; }
-
-        public string Stub { get; private set; }
-
-        public bool IsInstance { get; private set; }
+        public bool IsInstance { get; private set; } = isInstance;
 
         // Use this property if you want to show a fancy UIElement in the drop down list.
-        public object Content
-        {
-            get { return this.Text; }
-        }
+        public object Content => Text;
 
-        public object Description
-        {
-            get
-            {
-                // Do nothing: description now updated externally and asynchronously.
-                return "Not available";
-            }
-        }
+        public object Description =>
+            // Do nothing: description now updated externally and asynchronously.
+            "Not available";
 
-        public double Priority { get { return 0; } }
+        public double Priority => 0;
 
         public void Complete(TextArea textArea, ISegment completionSegment, EventArgs insertionRequestEventArgs)
         {
-            textArea.Document.Replace(completionSegment, this.Text);
+            textArea.Document.Replace(completionSegment, Text);
         }
     }
 }

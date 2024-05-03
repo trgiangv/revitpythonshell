@@ -10,7 +10,7 @@ namespace PythonConsoleControl
     /// </summary>
     public class PythonConsoleHighlightingColorizer : HighlightingColorizer
     {
-        private TextDocument document;
+        private readonly TextDocument _document;
 
         /// <summary>
         /// Creates a new HighlightingColorizer instance.
@@ -21,14 +21,14 @@ namespace PythonConsoleControl
         {
             if (document == null)
                 throw new ArgumentNullException("document");
-            this.document = document;
+            _document = document;
         }
 
         /// <inheritdoc/>
         protected override void ColorizeLine(DocumentLine line)
         {
             IHighlighter highlighter = CurrentContext.TextView.Services.GetService(typeof(IHighlighter)) as IHighlighter;
-            string lineString = document.GetText(line);
+            string lineString = _document.GetText(line);
             if (highlighter != null)
             {
                 if (lineString.Length < 3 || lineString.Substring(0, 3) == ">>>" || lineString.Substring(0, 3) == "...") {

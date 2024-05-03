@@ -6,24 +6,23 @@ using Microsoft.Scripting.Hosting.Shell;
 using Microsoft.Scripting;
 using System.Reflection;
 using System.Text.RegularExpressions;
+using IronPython.Runtime;
 
 namespace PythonConsoleControl
 {
     /// <summary>
     /// Provides code completion for the Python Console window.
     /// </summary>
-    public class PythonConsoleCompletionDataProvider
+    public class PythonConsoleCompletionDataProvider(CommandLine commandLine)
     {
-        private CommandLine commandLine;
-        internal volatile bool AutocompletionInProgress = false;
+        internal volatile bool AutocompletionInProgress;
 
-        private bool excludeCallables;
-        public bool ExcludeCallables { get { return excludeCallables; } set { excludeCallables = value; } }
-
-        public PythonConsoleCompletionDataProvider(CommandLine commandLine)//IMemberProvider memberProvider)
-        {
-            this.commandLine = commandLine;
+        private bool _excludeCallables;
+        public bool ExcludeCallables { get => _excludeCallables;
+            set => _excludeCallables = value;
         }
+
+        //IMemberProvider memberProvider)
 
         /// <summary>
         /// Generates completion data for the specified text. The text should be everything before
@@ -32,7 +31,7 @@ namespace PythonConsoleControl
         /// </summary>
         public Tuple<ICompletionData[], string, string> GenerateCompletionData(string line)
         {
-            List<PythonCompletionData> items = new List<PythonCompletionData>(); //DefaultCompletionData
+            List<PythonCompletionData> items = []; //DefaultCompletionData
 
             string objectName = string.Empty;
             string memberName = string.Empty;
@@ -44,7 +43,7 @@ namespace PythonConsoleControl
             // A very simple test of callables!
             bool isCallable = name.Contains(')');
 
-            if (excludeCallables && isCallable) return null;
+            if (_excludeCallables && isCallable) return null;
 
             System.IO.Stream stream = commandLine.ScriptScope.Engine.Runtime.IO.OutputStream;
             try
@@ -71,9 +70,9 @@ namespace PythonConsoleControl
                 Type type = TryGetType(objectName);
 
                 // Use Reflection for everything except in-built Python types and COM pbjects. 
-                if (type != null && type.Namespace != "IronPython.Runtime" && !type.FullName.Contains("IronPython.NewTypes") && (type.Name != "__ComObject"))
+                if (type != null && type.Namespace != "IronPython.Runtime" && !type.FullName!.Contains("IronPython.NewTypes") && (type.Name != "__ComObject"))
                 {
-                    PopulateFromCLRType(items, type, objectName);
+                    PopulateFromClrType(items, type, objectName);
                 }
                 else
                 {
@@ -83,7 +82,7 @@ namespace PythonConsoleControl
             }
             catch (ThreadAbortException tae)
             {
-                if (tae.ExceptionState is Microsoft.Scripting.KeyboardInterruptException) Thread.ResetAbort();
+                if (tae.ExceptionState is KeyboardInterruptException) Thread.ResetAbort();
             }
             catch
             {
@@ -94,7 +93,7 @@ namespace PythonConsoleControl
             return Tuple.Create(items.Cast<ICompletionData>().ToArray(), objectName, memberName);
         }
 
-        protected Type TryGetType(string name)
+        private Type TryGetType(string name)
         {
             string tryGetType = name + ".GetType()";
             object type = null;
@@ -104,7 +103,7 @@ namespace PythonConsoleControl
             }
             catch (ThreadAbortException tae)
             {
-                if (tae.ExceptionState is Microsoft.Scripting.KeyboardInterruptException) Thread.ResetAbort();
+                if (tae.ExceptionState is KeyboardInterruptException) Thread.ResetAbort();
             }
             catch
             {
@@ -113,28 +112,23 @@ namespace PythonConsoleControl
             return type as Type;
         }
 
-        protected void PopulateFromCLRType(List<PythonCompletionData> items, Type type, string name)
+        private void PopulateFromClrType(List<PythonCompletionData> items, Type type, string name)
         {
-            List<string> completionsList = new List<string>();
+            List<string> completionsList = [];
             MethodInfo[] methodInfo = type.GetMethods();
             PropertyInfo[] propertyInfo = type.GetProperties();
             FieldInfo[] fieldInfo = type.GetFields();
             foreach (MethodInfo methodInfoItem in methodInfo)
             {
                 if ((methodInfoItem.IsPublic)
-                    && (methodInfoItem.Name.IndexOf("get_") != 0) && (methodInfoItem.Name.IndexOf("set_") != 0)
-                    && (methodInfoItem.Name.IndexOf("add_") != 0) && (methodInfoItem.Name.IndexOf("remove_") != 0)
-                    && (methodInfoItem.Name.IndexOf("__") != 0))
+                    && (methodInfoItem.Name.IndexOf("get_", StringComparison.Ordinal) != 0) && (methodInfoItem.Name.IndexOf("set_", StringComparison.Ordinal) != 0)
+                    && (methodInfoItem.Name.IndexOf("add_", StringComparison.Ordinal) != 0) && (methodInfoItem.Name.IndexOf("remove_", StringComparison.Ordinal) != 0)
+                    && (methodInfoItem.Name.IndexOf("__", StringComparison.Ordinal) != 0))
                     completionsList.Add(methodInfoItem.Name);
             }
-            foreach (PropertyInfo propertyInfoItem in propertyInfo)
-            {
-                completionsList.Add(propertyInfoItem.Name);
-            }
-            foreach (FieldInfo fieldInfoItem in fieldInfo)
-            {
-                completionsList.Add(fieldInfoItem.Name);
-            }
+
+            completionsList.AddRange(propertyInfo.Select(propertyInfoItem => propertyInfoItem.Name));
+            completionsList.AddRange(fieldInfo.Select(fieldInfoItem => fieldInfoItem.Name));
             completionsList.Sort();
             string last = "";
             for (int i = completionsList.Count - 1; i > 0; --i)
@@ -142,18 +136,16 @@ namespace PythonConsoleControl
                 if (completionsList[i] == last) completionsList.RemoveAt(i);
                 else last = completionsList[i];
             }
-            foreach (string completion in completionsList)
-            {
-                items.Add(new PythonCompletionData(completion, name, commandLine, true));
-            }
+
+            items.AddRange(completionsList.Select(completion => new PythonCompletionData(completion, name, commandLine, true)));
         }
 
-        protected void PopulateFromPythonType(List<PythonCompletionData> items, string name)
+        private void PopulateFromPythonType(List<PythonCompletionData> items, string name)
         {
             //string dirCommand = "dir(" + objectName + ")";
             string dirCommand = "sorted([m for m in dir(" + name + ") if not m.startswith('__')], key = str.lower) + sorted([m for m in dir(" + name + ") if m.startswith('__')])";
             object value = commandLine.ScriptScope.Engine.CreateScriptSourceFromString(dirCommand, SourceCodeKind.Expression).Execute(commandLine.ScriptScope);
-            foreach (object member in (value as IronPython.Runtime.PythonList))
+            foreach (object member in ((PythonList)value))
             {
                 bool isInstance = false;
 
@@ -175,67 +167,66 @@ namespace PythonConsoleControl
         {
             System.IO.Stream stream = commandLine.ScriptScope.Engine.Runtime.IO.OutputStream;
             string description = "";
-            if (!String.IsNullOrEmpty(item))
+            if (String.IsNullOrEmpty(item)) return;
+            try
             {
-                try
-                {
-                    AutocompletionInProgress = true;
-                    // Another possibility:
-                    //commandLine.ScriptScope.Engine.Runtime.IO.SetOutput(new System.IO.MemoryStream(), Encoding.UTF8);
-                    //object value = commandLine.ScriptScope.Engine.CreateScriptSourceFromString(item, SourceCodeKind.Expression).Execute(commandLine.ScriptScope);
-                    //description = commandLine.ScriptScope.Engine.Operations.GetDocumentation(value);
-                    string docCommand = "";
+                AutocompletionInProgress = true;
+                // Another possibility:
+                //commandLine.ScriptScope.Engine.Runtime.IO.SetOutput(new System.IO.MemoryStream(), Encoding.UTF8);
+                //object value = commandLine.ScriptScope.Engine.CreateScriptSourceFromString(item, SourceCodeKind.Expression).Execute(commandLine.ScriptScope);
+                //description = commandLine.ScriptScope.Engine.Operations.GetDocumentation(value);
+                string docCommand = "";
 
-                    if (isInstance)
+                if (isInstance)
+                {
+                    if (stub != string.Empty)
                     {
-                        if (stub != string.Empty)
-                        {
-                            docCommand = "type(" + stub + ")" + "." + item + ".__doc__";
-                        }
-                        else
-                        {
-                            docCommand = "type(" + item + ")" + ".__doc__";
-                        }
+                        docCommand = "type(" + stub + ")" + "." + item + ".__doc__";
                     }
                     else
                     {
-                        if (stub != string.Empty)
-                        {
-                            docCommand = stub + "." + item + ".__doc__";
-                        }
-                        else
-                        {
-                            docCommand = item + ".__doc__";
-                        }
+                        docCommand = "type(" + item + ")" + ".__doc__";
                     }
+                }
+                else
+                {
+                    if (stub != string.Empty)
+                    {
+                        docCommand = stub + "." + item + ".__doc__";
+                    }
+                    else
+                    {
+                        docCommand = item + ".__doc__";
+                    }
+                }
 
-                    object value = commandLine.ScriptScope.Engine.CreateScriptSourceFromString(docCommand, SourceCodeKind.Expression).Execute(commandLine.ScriptScope);
-                    description = (string)value;
-                    AutocompletionInProgress = false;
-                }
-                catch (ThreadAbortException tae)
-                {
-                    if (tae.ExceptionState is Microsoft.Scripting.KeyboardInterruptException) Thread.ResetAbort();
-                    AutocompletionInProgress = false;
-                }
-                catch
-                {
-                    AutocompletionInProgress = false;
-                    // Do nothing.
-                }
-                commandLine.ScriptScope.Engine.Runtime.IO.SetOutput(stream, Encoding.UTF8);
-                updateDescription(description);
+                object value = commandLine.ScriptScope.Engine.CreateScriptSourceFromString(docCommand, SourceCodeKind.Expression).Execute(commandLine.ScriptScope);
+                description = (string)value;
+                AutocompletionInProgress = false;
             }
+            catch (ThreadAbortException tae)
+            {
+                if (tae.ExceptionState is KeyboardInterruptException) Thread.ResetAbort();
+                AutocompletionInProgress = false;
+            }
+            catch
+            {
+                AutocompletionInProgress = false;
+                // Do nothing.
+            }
+            commandLine.ScriptScope.Engine.Runtime.IO.SetOutput(stream, Encoding.UTF8);
+            updateDescription(description);
         }
 
-        private static readonly Regex MATCH_ALL_WORD = new Regex(@"^\w+$");
-        private static readonly Regex MATCH_LAST_WORD = new Regex(@"\w+$");
+        private static readonly Regex MatchAllWord = new(@"^\w+$");
+        private static readonly Regex MatchLastWord = new(@"\w+$");
 
-        private static readonly char[] DELIMITING_CHARS = { ',', '\t', ' ', ':', ';', '+', '-', '=', '*', '/', '&', '|', '^', '%', '~', '<', '>' };
+        private static readonly char[] DelimitingChars = [',', '\t', ' ', ':', ';', '+', '-', '=', '*', '/', '&', '|', '^', '%', '~', '<', '>'
+        ];
 
         private static string GetLastWord(string text)
         {
-            return MATCH_LAST_WORD.Match(text).Value;
+            return MatchLastWord.Match(text).Value;
         }
 
         private static int FindLastDelimiter(string text)
@@ -246,7 +237,7 @@ namespace PythonConsoleControl
             int lastUnbalancedParenthesisIndex = FindLastUnbalancedChar(text, '(', ')');
             int lastUnbalancedBracketIndex = FindLastUnbalancedChar(text, '[', ']');
 
-            lastDelimitingIndex = System.Math.Max(lastUnbalancedParenthesisIndex, lastUnbalancedBracketIndex);
+            lastDelimitingIndex = Math.Max(lastUnbalancedParenthesisIndex, lastUnbalancedBracketIndex);
 
             bool insideDoubleQuotedString = false;
             bool insideSingleQuotedString = false;
@@ -276,7 +267,7 @@ namespace PythonConsoleControl
                         int lastClosed = FindLastUnbalancedChar(text.Substring(i+1), '[', ']');
                         i = i + 1 + lastClosed;
                     }
-                    else if (DELIMITING_CHARS.Contains(c))
+                    else if (DelimitingChars.Contains(c))
                     {
                         lastDelimitingIndex = i;
                     }

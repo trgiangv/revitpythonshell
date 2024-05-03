@@ -27,7 +27,7 @@ namespace RevitPythonShell.RevitCommands
         {
             var messageCopy = message;
             var gui = new IronPythonConsole();
-            gui.consoleControl.WithConsoleHost((host) =>
+            gui.ConsoleControl.WithConsoleHost((host) =>
             {
                 // now that the console is created and initialized, the script scope should
                 // be accessible...
@@ -36,20 +36,18 @@ namespace RevitPythonShell.RevitCommands
 
                 host.Console.ScriptScope.SetVariable("__window__", gui);
 
-                // run the initscript
+                // run the init script
                 var initScript = App.GetInitScript();
-                if (initScript != null)
-                {
-                    var scriptSource = host.Engine.CreateScriptSourceFromString(initScript, SourceCodeKind.Statements);
-                    scriptSource.Execute(host.Console.ScriptScope);
-                }
+                if (initScript == null) return;
+                var scriptSource = host.Engine.CreateScriptSourceFromString(initScript, SourceCodeKind.Statements);
+                scriptSource.Execute(host.Console.ScriptScope);
             });
             var commandCompletedEvent = new AutoResetEvent(false);
             var externalEventHandler = new IronPythonExternalEventDispatcher(gui, commandCompletedEvent);
             var externalEvent = ExternalEvent.Create(externalEventHandler);
-            gui.consoleControl.WithConsoleHost((host) =>
+            gui.ConsoleControl.WithConsoleHost((host) =>
             {
-                var oldDispatcher = host.Console.GetCommandDispatcher();
+                host.Console.GetCommandDispatcher();
                 host.Console.SetCommandDispatcher((command) =>
                 {
                     //externalEventHandler.Enqueue(() => oldDispatcher(command));                    
@@ -76,21 +74,14 @@ namespace RevitPythonShell.RevitCommands
     /// <summary>
     /// Make sure commands are executed in a RevitAPI context for non-modal RPS interactive shells.
     /// </summary>
-    public class IronPythonExternalEventDispatcher : IExternalEventHandler
+    public class IronPythonExternalEventDispatcher(IronPythonConsole gui, AutoResetEvent commandCompletedEvent)
+        : IExternalEventHandler
     {
-        private IronPythonConsole _gui;
-        private Queue<Action> _commands = new Queue<Action>();
-        private AutoResetEvent _commandCompletedEvent;
+        private readonly Queue<Action> _commands = new();
 
         public void Enqueue(Action command)
         {
             _commands.Enqueue(command);
-        }
-
-        public IronPythonExternalEventDispatcher(IronPythonConsole gui, AutoResetEvent commandCompletedEvent)
-        {
-            _gui = gui;
-            _commandCompletedEvent = commandCompletedEvent;
         }
 
         public void Execute(UIApplication app)
@@ -106,7 +97,7 @@ namespace RevitPythonShell.RevitCommands
                 {
                     try
                     {
-                        _gui.consoleControl.WithConsoleHost((host) =>
+                        gui.ConsoleControl.WithConsoleHost((host) =>
                         {
                             ExceptionOperations eo;
                             eo = host.Engine.GetService<ExceptionOperations>();
@@ -123,7 +114,7 @@ namespace RevitPythonShell.RevitCommands
                 }
                 finally
                 {
-                    _commandCompletedEvent.Set();
+                    commandCompletedEvent.Set();
                 }
             }
         }

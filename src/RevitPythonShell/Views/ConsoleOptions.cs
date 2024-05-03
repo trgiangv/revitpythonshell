@@ -7,64 +7,57 @@ using PythonConsoleControl;
 
 namespace RevitPythonShell.Views
 {
-    public class ConsoleOptions
+    public class ConsoleOptions(PythonConsolePad pad)
     {
-        private TextEditor textEditor;
-        private PythonConsolePad pad;
-        
-        public ConsoleOptions(PythonConsolePad pad)
-        {
-            this.textEditor = pad.Control;
-            this.pad = pad;
-        }
+        private readonly TextEditor _textEditor = pad.Control;
 
         [DefaultValue(false)]
         public bool ShowSpaces
         {
-            get { return textEditor.TextArea.Options.ShowSpaces; }
-            set { textEditor.TextArea.Options.ShowSpaces = value; }
+            get => _textEditor.TextArea.Options.ShowSpaces;
+            set => _textEditor.TextArea.Options.ShowSpaces = value;
         }
 
         [DefaultValue(false)]
         public bool ShowTabs
         {
-            get { return textEditor.TextArea.Options.ShowTabs; }
-            set { textEditor.TextArea.Options.ShowTabs = value; }
+            get => _textEditor.TextArea.Options.ShowTabs;
+            set => _textEditor.TextArea.Options.ShowTabs = value;
         }
 
         [DefaultValue(false)]
         public bool AllowScrollBelowDocument
         {
-            get { return textEditor.TextArea.Options.AllowScrollBelowDocument; }
-            set { textEditor.TextArea.Options.AllowScrollBelowDocument = value; }
+            get => _textEditor.TextArea.Options.AllowScrollBelowDocument;
+            set => _textEditor.TextArea.Options.AllowScrollBelowDocument = value;
         }
 
         [DefaultValue("Consolas")]
         public string FontFamily
         {
-            get { return textEditor.TextArea.FontFamily.ToString(); }
-            set { textEditor.TextArea.FontFamily = new FontFamily(value); }
+            get => _textEditor.TextArea.FontFamily.ToString();
+            set => _textEditor.TextArea.FontFamily = new FontFamily(value);
         }
 
         [DefaultValue(12.0)]
         public double FontSize
         {
-            get { return textEditor.TextArea.FontSize; }
-            set { textEditor.TextArea.FontSize = value; }
+            get => _textEditor.TextArea.FontSize;
+            set => _textEditor.TextArea.FontSize = value;
         }
 
         [DefaultValue(false)]
         public bool FullAutocompletion
         {
-            get { return pad.Console.AllowFullAutocompletion; }
-            set { pad.Console.AllowFullAutocompletion = value; }
+            get => pad.Console.AllowFullAutocompletion;
+            set => pad.Console.AllowFullAutocompletion = value;
         }
 
         [DefaultValue(true)]
         public bool CtrlSpaceAutocompletion
         {
-            get { return pad.Console.AllowCtrlSpaceAutocompletion; }
-            set { pad.Console.AllowCtrlSpaceAutocompletion = value; }
+            get => pad.Console.AllowCtrlSpaceAutocompletion;
+            set => pad.Console.AllowCtrlSpaceAutocompletion = value;
         }
     }
 }

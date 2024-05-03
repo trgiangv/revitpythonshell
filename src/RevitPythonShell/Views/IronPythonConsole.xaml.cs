@@ -1,5 +1,4 @@
 ﻿using System.IO;
-using System.Reflection;
 using System.Windows;
 using System.Windows.Input;
 using System.Xml;
@@ -14,14 +13,12 @@ namespace RevitPythonShell.Views
     /// </summary>
     public partial class IronPythonConsole : Window
     {
-        private ConsoleOptions consoleOptionsProvider;
-
         // this is the name of the file currently being edited in the pad
-        private string currentFileName;
+        private string _currentFileName;
 
         public IronPythonConsole()
         {
-            Initialized += new EventHandler(MainWindow_Initialized);
+            Initialized += MainWindow_Initialized;
 
             IHighlightingDefinition pythonHighlighting;
             using (Stream s = typeof(IronPythonConsole).Assembly.GetManifestResourceStream("RevitPythonShell.Resources.Python.xshd"))
@@ -35,51 +32,50 @@ namespace RevitPythonShell.Views
                 }
             }
             // and register it in the HighlightingManager
-            HighlightingManager.Instance.RegisterHighlighting("Python Highlighting", new string[] { ".cool" }, pythonHighlighting);
+            HighlightingManager.Instance.RegisterHighlighting("Python Highlighting", [".cool"], pythonHighlighting);
 
             InitializeComponent();
 
-            textEditor.SyntaxHighlighting = pythonHighlighting;
-            textEditor.PreviewKeyDown += new KeyEventHandler(textEditor_PreviewKeyDown);
-            consoleOptionsProvider = new ConsoleOptions(consoleControl.Pad);
+            TextEditor.SyntaxHighlighting = pythonHighlighting;
+            TextEditor.PreviewKeyDown += textEditor_PreviewKeyDown;
+            new ConsoleOptions(ConsoleControl.Pad);
 
             // get application version and show in title
-            Title = String.Format("RevitPythonShell | {0}", Assembly.GetExecutingAssembly().GetName().Version.ToString());
+            Title = "RevitPythonShell";
         }
 
         private void MainWindow_Initialized(object sender, EventArgs e)
         {
             //propertyGridComboBox.SelectedIndex = 1;
-            textEditor.ShowLineNumbers = true;
+            TextEditor.ShowLineNumbers = true;
         }
-        private void newFileClick(object sender, RoutedEventArgs e)
+        private void NewFileClick(object sender, RoutedEventArgs e)
         {
-            currentFileName = null;
-            textEditor.Text = string.Empty;
+            _currentFileName = null;
+            TextEditor.Text = string.Empty;
         }
-        private void openFileClick(object sender, RoutedEventArgs e)
+        private void OpenFileClick(object sender, RoutedEventArgs e)
         {
-            OpenFileDialog dlg = new OpenFileDialog();
-            dlg.CheckFileExists = true;
-            if (dlg.ShowDialog() ?? false)
+            OpenFileDialog dlg = new OpenFileDialog
             {
-                currentFileName = dlg.FileName;
-                textEditor.Load(currentFileName);
-                //textEditor.SyntaxHighlighting = HighlightingManager.Instance.GetDefinitionByExtension(Path.GetExtension(currentFileName));
-            }
+                CheckFileExists = true
+            };
+            if (!(dlg.ShowDialog() ?? false)) return;
+            _currentFileName = dlg.FileName;
+            TextEditor.Load(_currentFileName);
         }
-        private void saveAsFileClick(object sender, EventArgs e)
+        private void SaveAsFileClick(object sender, EventArgs e)
         {
-            currentFileName = null;
+            _currentFileName = null;
             SaveFile();
         }
-        private void saveFileClick(object sender, EventArgs e)
+        private void SaveFileClick(object sender, EventArgs e)
         {
            SaveFile();
         }
         private void SaveFile()
         {
-            if (currentFileName == null)
+            if (_currentFileName == null)
             {
                 SaveFileDialog dlg = new SaveFileDialog();
                 dlg.Filter = "Save Files (*.py)|*.py";
@@ -87,53 +83,61 @@ namespace RevitPythonShell.Views
                 dlg.AddExtension = true;
                 if (dlg.ShowDialog() ?? false)
                 {
-                    currentFileName = dlg.FileName;
+                    _currentFileName = dlg.FileName;
                 }
                 else
                 {
                     return;
                 }
             }
-            textEditor.Save(currentFileName);
+            TextEditor.Save(_currentFileName);
         }
 
-        private void runClick(object sender, EventArgs e)
+        private void RunClick(object sender, EventArgs e)
         {
             RunStatements();
         }
 
         private void textEditor_PreviewKeyDown(object sender, KeyEventArgs e)
         {
-            if (e.Key == Key.F5) RunStatements();
-            if (e.Key == Key.S && Keyboard.Modifiers == ModifierKeys.Control) SaveFile();
-            if (e.Key == Key.S && Keyboard.Modifiers == (ModifierKeys.Control | ModifierKeys.Shift)) saveAsFileClick(sender, e);
-            if (e.Key == Key.O && Keyboard.Modifiers == ModifierKeys.Control) openFileClick(sender, e);
-            if (e.Key == Key.N && Keyboard.Modifiers == ModifierKeys.Control) newFileClick(sender, e);
-            if (e.Key == Key.F4 && Keyboard.Modifiers == ModifierKeys.Control) Close();
-            
+            switch (e.Key)
+            {
+                case Key.F5:
+                    RunStatements();
+                    break;
+                case Key.S when Keyboard.Modifiers == ModifierKeys.Control:
+                    SaveFile();
+                    break;
+                case Key.S when Keyboard.Modifiers == (ModifierKeys.Control | ModifierKeys.Shift):
+                    SaveAsFileClick(sender, e);
+                    break;
+                case Key.O when Keyboard.Modifiers == ModifierKeys.Control:
+                    OpenFileClick(sender, e);
+                    break;
+                case Key.N when Keyboard.Modifiers == ModifierKeys.Control:
+                    NewFileClick(sender, e);
+                    break;
+                case Key.F4 when Keyboard.Modifiers == ModifierKeys.Control:
+                    Close();
+                    break;   
+            }
         }
 
         private void RunStatements()
         {
-            string statementsToRun = "";
-            if (textEditor.TextArea.Selection.Length > 0)
-                statementsToRun = textEditor.TextArea.Selection.GetText();
-            else
-                statementsToRun = textEditor.TextArea.Document.Text;
-            consoleControl.Pad.Console.RunStatements(statementsToRun);
+            var statementsToRun = TextEditor.TextArea.Selection.Length > 0 ? TextEditor.TextArea.Selection.GetText() : TextEditor.TextArea.Document.Text;
+            ConsoleControl.Pad.Console.RunStatements(statementsToRun);
         }
 
         // Clear the contents on first click inside the editor
         private void textEditor_GotFocus(object sender, RoutedEventArgs e)
         {
-            if (this.currentFileName == null)
-            {
-                TextEditor tb = (TextEditor)sender;
-                tb.Text = string.Empty;
-                // Remove the handler from the list otherwise this handler will clear
-                // editor contents every time the editor gains focus.
-                tb.GotFocus -= textEditor_GotFocus;
-            }
+            if (_currentFileName != null) return;
+            TextEditor tb = (TextEditor)sender;
+            tb.Text = string.Empty;
+            // Remove the handler from the list otherwise this handler will clear
+            // editor contents every time the editor gains focus.
+            tb.GotFocus -= textEditor_GotFocus;
         }
 
     }

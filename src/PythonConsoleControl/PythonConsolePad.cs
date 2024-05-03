@@ -7,38 +7,28 @@ namespace PythonConsoleControl
 {   
     public class PythonConsolePad 
     {
-        private PythonTextEditor pythonTextEditor;
-        private TextEditor textEditor;
-        private PythonConsoleHost host;
+        private readonly TextEditor _textEditor;
+        private readonly PythonConsoleHost _host;
 
         public PythonConsolePad()
         {
-            textEditor = new TextEditor();
-            pythonTextEditor = new PythonTextEditor(textEditor);
-            host = new PythonConsoleHost(pythonTextEditor);
-            host.Run();
-            textEditor.FontFamily = new FontFamily("Consolas");
-            textEditor.FontSize = 12;
+            _textEditor = new TextEditor();
+            var pythonTextEditor = new PythonTextEditor(_textEditor);
+            _host = new PythonConsoleHost(pythonTextEditor);
+            _host.Run();
+            _textEditor.FontFamily = new FontFamily("Consolas");
+            _textEditor.FontSize = 12;
         }
 
-        public TextEditor Control
-        {
-            get { return textEditor; }
-        }
+        public TextEditor Control => _textEditor;
 
-        public PythonConsoleHost Host
-        {
-            get { return host; }
-        }
+        public PythonConsoleHost Host => _host;
 
-        public PythonConsole Console
-        {
-            get { return host.Console; }
-        }
+        public PythonConsole Console => _host.Console;
 
         public void Dispose()
         {
-            host.Dispose();
+            _host.Dispose();
         }
     }
 }

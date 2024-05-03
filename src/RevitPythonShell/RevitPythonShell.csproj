@@ -108,49 +108,21 @@
     <EmbeddedResource Include="Resources\Settings-32.png">
       <CopyToOutputDirectory>Never</CopyToOutputDirectory>
     </EmbeddedResource>
-    <EmbeddedResource Include="Resources\Theme\SaveAs.png">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </EmbeddedResource>
-    <EmbeddedResource Include="Resources\Theme\New.png">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </EmbeddedResource>
+    <Resource Include="Resources\Theme\SaveAs.png" />
+    <Resource Include="Resources\Theme\New.png" />
     <None Include="RevitPythonShell.addin" />
-    <EmbeddedResource Include="Resources\Theme\Redo.png">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </EmbeddedResource>
-    <EmbeddedResource Include="Resources\Theme\Run.png">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </EmbeddedResource>
-    <EmbeddedResource Include="Resources\Theme\Save.png">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </EmbeddedResource>
-    <EmbeddedResource Include="Resources\Theme\Undo.png">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </EmbeddedResource>
-    <EmbeddedResource Include="Resources\Theme\WordWrap.png">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </EmbeddedResource>
-    <EmbeddedResource Include="Resources\Theme\Copy.png">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </EmbeddedResource>
-    <EmbeddedResource Include="Resources\Theme\Cut.png">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </EmbeddedResource>
-    <EmbeddedResource Include="Resources\Theme\Delete.png">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </EmbeddedResource>
-    <EmbeddedResource Include="Resources\Theme\Number.png">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </EmbeddedResource>
-    <EmbeddedResource Include="Resources\Theme\Open.png">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </EmbeddedResource>
-    <EmbeddedResource Include="Resources\Theme\Paragraph.png">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </EmbeddedResource>
-    <EmbeddedResource Include="Resources\Theme\Paste.png">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </EmbeddedResource>
+    <Resource Include="Resources\Theme\Redo.png" />
+    <Resource Include="Resources\Theme\Run.png" />
+    <Resource Include="Resources\Theme\Save.png" />
+    <Resource Include="Resources\Theme\Undo.png" />
+    <Resource Include="Resources\Theme\WordWrap.png" />
+    <Resource Include="Resources\Theme\Copy.png" />
+    <Resource Include="Resources\Theme\Cut.png" />
+    <Resource Include="Resources\Theme\Delete.png" />
+    <Resource Include="Resources\Theme\Number.png" />
+    <Resource Include="Resources\Theme\Open.png" />
+    <Resource Include="Resources\Theme\Paragraph.png" />
+    <Resource Include="Resources\Theme\Paste.png" />
     <None Remove="init.py" />
     <None Remove="Resources\Console-16.png" />
     <None Remove="Resources\Console-32.png" />
